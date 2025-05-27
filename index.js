@@ -1,34 +1,36 @@
 const mineflayer = require("mineflayer");
-const express = require("express");
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Simple webserver to keep Railway app alive
-app.get("/", (req, res) => {
-  res.send("Bot is alive!");
-});
-
-app.listen(PORT, () => console.log(`Express server listening on port ${PORT}`));
-
-// Bot config from env or defaults
-const SERVER_HOST = process.env.MC_HOST || "afkbottest.aternos.me";
-const SERVER_PORT = parseInt(process.env.MC_PORT) || 36350;
-const BOT_USERNAME = process.env.MC_USERNAME || "AFK_Bot_01";
-
-let bot;
 
 function createBot() {
-  bot = mineflayer.createBot({
-    host: SERVER_HOST,
-    port: SERVER_PORT,
-    username: BOT_USERNAME,
+  const bot = mineflayer.createBot({
+    host: "afkbottest.aternos.me", // Your server IP
+    port: 36350,                   // Your server port
+    username: "AFK_Bot_01"         // Cracked server username
   });
 
   bot.on("spawn", () => {
-    console.log("[✅] Bot spawned! Anti-AFK running.");
+    console.log("Bot spawned! Typing infinite effect commands.");
 
-    // Anti-AFK movement every 15 seconds
+    const effects = [
+      "resistance",
+      "regeneration",
+      "fire_resistance",
+      "absorption"
+    ];
+
+    // Type each effect command in chat with "infinite" duration
+    function sendEffectCommands(index = 0) {
+      if (index >= effects.length) return;
+
+      const cmd = `/effect give ${bot.username} minecraft:${effects[index]} infinite`;
+      bot.chat(cmd);
+      console.log(`Typed: ${cmd}`);
+
+      setTimeout(() => sendEffectCommands(index + 1), 1000); // 1 sec delay between messages
+    }
+
+    sendEffectCommands();
+
+    // Anti-AFK: look around + jump every 15 seconds
     setInterval(() => {
       const yaw = Math.random() * Math.PI * 2;
       bot.look(yaw, 0, true);
@@ -37,35 +39,30 @@ function createBot() {
     }, 15000);
   });
 
-  // Auto-respawn after death
   bot.on("death", () => {
-    console.log("[💀] Bot died! Respawning in 3 seconds...");
-    setTimeout(() => bot.emit("respawn"), 3000);
+    console.log("Bot died!");
   });
 
   bot.on("kicked", (reason) => {
-    console.log(`[❌] Bot kicked: ${reason}`);
-    reconnect();
-  });
-
-  bot.on("error", (err) => {
-    console.log(`[⚠️] Bot error: ${err}`);
+    console.log("Bot kicked:", reason);
     reconnect();
   });
 
   bot.on("end", () => {
-    console.log("[🔁] Bot disconnected.");
+    console.log("Bot disconnected. Reconnecting...");
     reconnect();
   });
 
-  bot.on("message", (message) => {
-    console.log(`[💬] Chat: ${message.toAnsi()}`);
+  bot.on("error", (err) => {
+    console.log("Error:", err);
   });
-}
 
-function reconnect() {
-  console.log("[⏳] Reconnecting in 1 second...");
-  setTimeout(createBot, 1000);
+  function reconnect() {
+    setTimeout(() => {
+      console.log("Reconnecting...");
+      createBot();
+    }, 3000);
+  }
 }
 
 createBot();
