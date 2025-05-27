@@ -1,8 +1,20 @@
 const mineflayer = require("mineflayer");
+const express = require("express");
 
-const SERVER_HOST = "afkbottest.aternos.me";
-const SERVER_PORT = 36350;
-const BOT_USERNAME = "AFK_Bot_01";
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get("/", (req, res) => {
+  res.send("Bot is alive!");
+});
+
+app.listen(PORT, () => console.log(`Express server listening on port ${PORT}`));
+
+// Bot code here...
+
+const SERVER_HOST = process.env.MC_HOST || "afkbottest.aternos.me";
+const SERVER_PORT = parseInt(process.env.MC_PORT) || 36350;
+const BOT_USERNAME = process.env.MC_USERNAME || "AFK_Bot_01";
 
 let bot;
 
@@ -10,13 +22,11 @@ function createBot() {
   bot = mineflayer.createBot({
     host: SERVER_HOST,
     port: SERVER_PORT,
-    username: BOT_USERNAME,
+    username: BOT_USERNAME
   });
 
   bot.on("spawn", () => {
     console.log("[✅] Bot spawned! Anti-AFK running.");
-
-    // Anti-AFK movement every 15s
     setInterval(() => {
       const yaw = Math.random() * Math.PI * 2;
       bot.look(yaw, 0, true);
@@ -25,15 +35,12 @@ function createBot() {
     }, 15000);
   });
 
-  // ✅ Auto-respawn after death
   bot.on("death", () => {
     console.log("[💀] Bot died! Respawning in 3 seconds...");
-    setTimeout(() => {
-      bot.emit("respawn");
-    }, 3000);
+    setTimeout(() => bot.emit("respawn"), 3000);
   });
 
-  bot.on("kicked", (reason, loggedIn) => {
+  bot.on("kicked", (reason) => {
     console.log(`[❌] Bot kicked: ${reason}`);
     reconnect();
   });
@@ -54,10 +61,8 @@ function createBot() {
 }
 
 function reconnect() {
-  console.log("[⏳] Fast reconnecting in 1 second...");
-  setTimeout(() => {
-    createBot();
-  }, 1000);
+  console.log("[⏳] Reconnecting in 1 second...");
+  setTimeout(createBot, 1000);
 }
 
 createBot();
