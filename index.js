@@ -1,36 +1,19 @@
 const mineflayer = require("mineflayer");
+let bot;
 
 function createBot() {
-  const bot = mineflayer.createBot({
-    host: "afkbottest.aternos.me", // Your server IP
-    port: 36350,                   // Your server port
+  bot = mineflayer.createBot({
+    host: "afkbottest.aternos.me", // Replace with your server IP
+    port: 36350,                   // Replace with your server port
     username: "AFK_Bot_01"         // Cracked server username
   });
 
   bot.on("spawn", () => {
-    console.log("Bot spawned! Typing infinite effect commands.");
+    console.log("✅ Bot spawned! Applying effects and starting anti-AFK...");
 
-    const effects = [
-      "resistance",
-      "regeneration",
-      "fire_resistance",
-      "absorption"
-    ];
+    applyInvincibleEffects();
 
-    // Type each effect command in chat with "infinite" duration
-    function sendEffectCommands(index = 0) {
-      if (index >= effects.length) return;
-
-      const cmd = `/effect give ${bot.username} minecraft:${effects[index]} infinite`;
-      bot.chat(cmd);
-      console.log(`Typed: ${cmd}`);
-
-      setTimeout(() => sendEffectCommands(index + 1), 1000); // 1 sec delay between messages
-    }
-
-    sendEffectCommands();
-
-    // Anti-AFK: look around + jump every 15 seconds
+    // Anti-AFK: move every 15 seconds
     setInterval(() => {
       const yaw = Math.random() * Math.PI * 2;
       bot.look(yaw, 0, true);
@@ -40,29 +23,69 @@ function createBot() {
   });
 
   bot.on("death", () => {
-    console.log("Bot died!");
+    console.log("⚠️ Bot died!");
   });
 
   bot.on("kicked", (reason) => {
-    console.log("Bot kicked:", reason);
+    console.log("❌ Kicked:", reason);
     reconnect();
   });
 
   bot.on("end", () => {
-    console.log("Bot disconnected. Reconnecting...");
+    console.log("🔄 Disconnected. Reconnecting...");
     reconnect();
   });
 
   bot.on("error", (err) => {
-    console.log("Error:", err);
+    console.log("❌ Error:", err);
   });
-
-  function reconnect() {
-    setTimeout(() => {
-      console.log("Reconnecting...");
-      createBot();
-    }, 3000);
-  }
 }
 
+// Apply long-duration effects (1,000,000 seconds)
+function applyInvincibleEffects() {
+  const effects = [
+    { name: "resistance", level: 4 },
+    { name: "regeneration", level: 1 },
+    { name: "fire_resistance", level: 0 },
+    { name: "absorption", level: 3 },
+  ];
+
+  let index = 0;
+  function sendNext() {
+    if (index >= effects.length) return;
+    const effect = effects[index];
+    const cmd = `/effect give ${bot.username} minecraft:${effect.name} 1000000 ${effect.level} true`;
+    bot.chat(cmd);
+    console.log(`🧪 Sent command: ${cmd}`);
+    index++;
+    setTimeout(sendNext, 1000);
+  }
+
+  sendNext();
+}
+
+// Disconnect and reconnect at 12 AM
+function scheduleMidnightRestart() {
+  const now = new Date();
+  const nextMidnight = new Date();
+  nextMidnight.setHours(24, 0, 0, 0); // 12:00 AM next day
+
+  const msUntilMidnight = nextMidnight.getTime() - now.getTime();
+
+  console.log(`⏰ Scheduled daily restart in ${Math.round(msUntilMidnight / 1000 / 60)} minutes.`);
+
+  setTimeout(() => {
+    console.log("🌙 It's midnight! Restarting bot to reapply effects...");
+
+    if (bot) bot.quit();
+
+    setTimeout(() => {
+      createBot();         // reconnect
+      scheduleMidnightRestart(); // reschedule next midnight restart
+    }, 5000); // wait 5s before reconnect
+  }, msUntilMidnight);
+}
+
+// Start everything
 createBot();
+scheduleMidnightRestart();
