@@ -5,7 +5,7 @@ function createBot() {
   bot = mineflayer.createBot({
     host: "AGEN2.aternos.me", // Replace with your server IP
     port: 58248,                   // Replace with your server port
-    username: "AFK_Bot_01"         // Cracked server username
+    username: "AFK_Bot"         // Cracked server username
   });
 
   bot.on("spawn", () => {
